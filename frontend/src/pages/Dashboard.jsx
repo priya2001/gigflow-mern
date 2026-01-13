@@ -6,7 +6,7 @@ import { Link } from 'react-router-dom';
 import io from 'socket.io-client';
 
 const Dashboard = () => {
-  const { user } = useSelector((state) => state.auth);
+  const { user, isAuthenticated } = useSelector((state) => state.auth);
   const { myGigs } = useSelector((state) => state.gigs);
   const { bids } = useSelector((state) => state.bids);
   const dispatch = useDispatch();
@@ -14,40 +14,42 @@ const Dashboard = () => {
   const [notifications, setNotifications] = useState([]);
 
   useEffect(() => {
-    dispatch(getMyGigs());
-    dispatch(getMyBids());
-    
-    // Setup socket connection for real-time notifications
-    const socket = io(process.env.VITE_REACT_APP_BACKEND_URL || 'http://localhost:5000');
-    
-    // Join user's room for notifications
-    if (user) {
-      socket.emit('join-room', user.id);
-    }
-    
-    // Listen for notifications
-    socket.on('notification', (data) => {
-      setNotifications(prev => [...prev, { ...data, id: Date.now() }]);
+    if (isAuthenticated) {
+      dispatch(getMyGigs());
+      dispatch(getMyBids());
       
-      // Show browser notification if available
-      if ('Notification' in window && Notification.permission === 'granted') {
-        new Notification(data.data.message, {
-          body: data.data.gigTitle ? `Job: ${data.data.gigTitle}` : 'New update available',
-          icon: '/favicon.ico'
-        });
+      // Setup socket connection for real-time notifications
+      const socket = io(process.env.VITE_REACT_APP_BACKEND_URL || 'http://localhost:5000');
+      
+      // Join user's room for notifications
+      if (user) {
+        socket.emit('join-room', user.id);
       }
-    });
-    
-    // Request notification permission
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission();
+      
+      // Listen for notifications
+      socket.on('notification', (data) => {
+        setNotifications(prev => [...prev, { ...data, id: Date.now() }]);
+        
+        // Show browser notification if available
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification(data.data.message, {
+            body: data.data.gigTitle ? `Job: ${data.data.gigTitle}` : 'New update available',
+            icon: '/favicon.ico'
+          });
+        }
+      });
+      
+      // Request notification permission
+      if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission();
+      }
+      
+      // Cleanup
+      return () => {
+        socket.disconnect();
+      };
     }
-    
-    // Cleanup
-    return () => {
-      socket.disconnect();
-    };
-  }, [dispatch, user]);
+  }, [dispatch, user, isAuthenticated]);
 
   // Filter user's bids
   const myActiveBids = bids.filter(bid => bid.status === 'pending');
@@ -59,13 +61,35 @@ const Dashboard = () => {
   const activeBids = myActiveBids.length;
   const hiredCount = myHiredBids.length;
 
+  if (!isAuthenticated) {
+    return (
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
+        <div className="rounded-lg bg-white p-8 shadow-sm border border-gray-200">
+          <div className="mx-auto h-16 w-16 rounded-full bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center mb-6">
+            <span className="text-white text-2xl font-bold">GF</span>
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Access Denied</h2>
+          <p className="text-gray-600 mb-8">You need to be logged in to access the dashboard.</p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link to="/login" className="btn-primary">
+              Login to Continue
+            </Link>
+            <Link to="/register" className="btn-outline">
+              Create Account
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
         <p className="text-gray-600">Welcome back, {user?.name}! Here's what's happening with your jobs and bids.</p>
       </div>
-
+  
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <div className="card p-6">
@@ -81,7 +105,7 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
-
+  
         <div className="card p-6">
           <div className="flex items-center">
             <div className="p-3 rounded-full bg-green-100">
@@ -95,7 +119,7 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
-
+  
         <div className="card p-6">
           <div className="flex items-center">
             <div className="p-3 rounded-full bg-yellow-100">
@@ -109,7 +133,7 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
-
+  
         <div className="card p-6">
           <div className="flex items-center">
             <div className="p-3 rounded-full bg-purple-100">
@@ -124,7 +148,7 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
-
+  
       {/* Notifications Panel */}
       {notifications.length > 0 && (
         <div className="card p-6 mb-8">
@@ -151,7 +175,7 @@ const Dashboard = () => {
           </div>
         </div>
       )}
-
+  
       {/* Recent Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* My Jobs */}
@@ -180,7 +204,7 @@ const Dashboard = () => {
             <p className="text-gray-500">No jobs posted yet.</p>
           )}
         </div>
-
+  
         {/* My Bids */}
         <div className="card p-6">
           <div className="flex justify-between items-center mb-4">
