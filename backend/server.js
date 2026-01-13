@@ -17,8 +17,46 @@ connectDB();
 
 const app = express();
 
-// Body parser middleware
-app.use(express.json());
+// Debugging middleware to catch malformed JSON
+app.use((req, res, next) => {
+  // Log incoming request info
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  
+  // Safely handle JSON parsing with error catching
+  if (req.headers['content-type'] && req.headers['content-type'].includes('application/json')) {
+    try {
+      // Parse body manually to catch errors
+      if (req.body && typeof req.body === 'string') {
+        req.body = JSON.parse(req.body);
+      }
+    } catch (error) {
+      console.error('JSON parsing error:', error.message);
+      console.error('Raw body:', req.body);
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid JSON format in request'
+      });
+    }
+  }
+  next();
+});
+
+// Body parser middleware with error handling
+app.use(express.json({ 
+  limit: '10mb',
+  verify: (req, res, buf, encoding) => {
+    try {
+      JSON.parse(buf);
+    } catch (e) {
+      console.error('Malformed JSON received:', buf.toString());
+      res.status(400).json({
+        success: false,
+        message: 'Invalid JSON format in request'
+      });
+      throw new Error('Invalid JSON');
+    }
+  }
+}));
 
 // Cookie parser middleware
 app.use(cookieParser());

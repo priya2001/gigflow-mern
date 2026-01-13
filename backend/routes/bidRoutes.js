@@ -1,5 +1,5 @@
 import express from "express";
-import { createBid, getBids, hireBid } from "../controllers/bidController.js";
+import { createBid, getBidsForGig, getMyBids, hireBid, updateBid, deleteBid } from "../controllers/bidController.js";
 import { protect } from "../middleware/auth.js";
 
 const router = express.Router();
@@ -7,10 +7,17 @@ const router = express.Router();
 router.route("/")
   .post(protect, createBid);
 
+router.route("/my-bids")
+  .get(protect, getMyBids);
+
 router.route("/gig/:gigId")
-  .get(protect, getBids);
+  .get(protect, getBidsForGig);
 
 router.route("/:bidId/hire")
-  .patch(protect, hireBid);
+  .put(protect, hireBid);
+
+router.route("/:bidId")
+  .put(protect, updateBid)
+  .delete(protect, deleteBid);
 
 export default router;

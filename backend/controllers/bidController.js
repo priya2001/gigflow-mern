@@ -85,7 +85,7 @@ export const createBid = async (req, res) => {
   }
 };
 
-export const getBids = async (req, res) => {
+export const getBidsForGig = async (req, res) => {
   try {
     const gig = await Gig.findById(req.params.gigId);
 
@@ -114,6 +114,26 @@ export const getBids = async (req, res) => {
     });
   } catch (error) {
     console.error('Get bids for gig error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error during fetching bids'
+    });
+  }
+};
+
+export const getMyBids = async (req, res) => {
+  try {
+    const bids = await Bid.find({ freelancerId: req.user.id })
+      .populate('gigId', 'title description budget status')
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: bids.length,
+      data: bids
+    });
+  } catch (error) {
+    console.error('Get my bids error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error during fetching bids'
@@ -226,6 +246,100 @@ export const hireBid = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error during hiring process'
+    });
+  }
+};
+
+// Update bid (for freelancer to update their bid)
+export const updateBid = async (req, res) => {
+  try {
+    const bid = await Bid.findById(req.params.bidId);
+
+    if (!bid) {
+      return res.status(404).json({
+        success: false,
+        message: 'Bid not found'
+      });
+    }
+
+    // Check if user owns the bid
+    if (bid.freelancerId.toString() !== req.user.id.toString()) {
+      return res.status(401).json({
+        success: false,
+        message: 'Not authorized to update this bid'
+      });
+    }
+
+    // Cannot update bid if it's already hired or rejected
+    if (bid.status !== 'pending') {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot update bid that is no longer pending'
+      });
+    }
+
+    const updatedBid = await Bid.findByIdAndUpdate(
+      req.params.bidId,
+      req.body,
+      {
+        new: true,
+        runValidators: true
+      }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Bid updated successfully',
+      data: updatedBid
+    });
+  } catch (error) {
+    console.error('Update bid error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error during updating bid'
+    });
+  }
+};
+
+// Delete bid (for freelancer to withdraw their bid)
+export const deleteBid = async (req, res) => {
+  try {
+    const bid = await Bid.findById(req.params.bidId);
+
+    if (!bid) {
+      return res.status(404).json({
+        success: false,
+        message: 'Bid not found'
+      });
+    }
+
+    // Check if user owns the bid
+    if (bid.freelancerId.toString() !== req.user.id.toString()) {
+      return res.status(401).json({
+        success: false,
+        message: 'Not authorized to delete this bid'
+      });
+    }
+
+    // Cannot delete bid if it's already hired or rejected
+    if (bid.status !== 'pending') {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot delete bid that is no longer pending'
+      });
+    }
+
+    await Bid.findByIdAndDelete(req.params.bidId);
+
+    res.status(200).json({
+      success: true,
+      message: 'Bid deleted successfully'
+    });
+  } catch (error) {
+    console.error('Delete bid error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error during deleting bid'
     });
   }
 };
