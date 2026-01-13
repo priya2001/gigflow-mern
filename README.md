@@ -2,6 +2,13 @@
 
 GigFlow is a full-stack freelance marketplace built with the MERN stack (MongoDB, Express.js, React.js, Node.js) that allows clients to post jobs (gigs) and freelancers to bid on them.
 
+## Screenshots
+
+![App Output](image/img1.png)
+![App Output](image/img2.png)
+![App Output](image/img3.png)
+![App Output](image/img4.png)
+
 ## Features
 
 - **User Authentication**: Secure JWT-based authentication with HttpOnly cookies
