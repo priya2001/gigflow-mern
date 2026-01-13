@@ -4,6 +4,8 @@ GigFlow is a full-stack freelance marketplace built with the MERN stack (MongoDB
 
 ## Screenshots
 
+### Search Page
+
 ![App Output](image/img1.png)
 ![App Output](image/img2.png)
 
